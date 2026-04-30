@@ -1,0 +1,4 @@
+azure-functions>=1.21.0
+azure-storage-blob>=12.19.0
+azure-core>=1.30.0
+pyodbc>=5.1.0

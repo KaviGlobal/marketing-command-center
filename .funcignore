@@ -1,0 +1,33 @@
+# Keep deployment artifacts focused on runtime code and host config.
+
+# Local environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local config and runtime output
+local.settings.json
+logs/
+ingestion.log*
+ingestion-errors.log*
+ingestion.jsonl*
+
+# Repo-only docs, samples, and helper assets
+docs/
+sample-blob/
+sample_blob.json
+local.settings.example.json
+README.md
+DEPLOYMENT.md
+*.sql
+seed_sample_blob_data.py
+
+# Git metadata and workspace noise
+.git/
+.gitattributes
+.gitignore
+.funcignore
