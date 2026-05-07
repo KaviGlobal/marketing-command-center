@@ -40,6 +40,5 @@ The schema also includes run and blob ingestion tracking tables:
 
 ## Notes
 
-- `chatbot-sessions-data-export-schema.sql` is the canonical Azure SQL schema for deployments.
-- The prospect/offering compatibility columns from the old migration files are already included there.
-- `create_tables.sql` is deprecated and should not be used.
+- `chatbot-sessions-data-export-schema.sql` is the only Azure SQL deployment script.
+- Historical prospect/offering migration deltas are already folded into that canonical schema.

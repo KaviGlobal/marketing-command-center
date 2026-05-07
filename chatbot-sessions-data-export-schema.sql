@@ -2,11 +2,9 @@
 -- Kavi Chat Data Export — Azure SQL Schema (Production)
 -- This is the canonical DDL. All tables below are already
 -- deployed to the production Azure SQL database.
--- =============================================================
-
 -- Historical prospect/offering migration deltas are already
--- included in this file, so it is the only Azure SQL script
--- that should be used going forward.
+-- folded into this file; use this as the only Azure SQL script.
+-- =============================================================
 
 CREATE TABLE dbo.session_blob_session (
     session_id NVARCHAR(200) PRIMARY KEY,
@@ -357,7 +355,8 @@ AS
         CAST(s.created_at AS DATE) AS metric_date,
         COALESCE(s.flow_type, 'unknown') AS flow_type,
         CASE
-            WHEN dn.goal_completed_flag = 1 THEN 'completed_flow'
+            WHEN dn.goal_completed_flag = 1
+              OR (dn.goal_completed_flag IS NULL AND s.resolved_flag = 1) THEN 'completed_flow'
             WHEN s.fallback_flag = 1 THEN 'system_fallback'
             WHEN s.abandoned_flag = 1 THEN 'left_midway'
             ELSE 'unknown'
@@ -476,7 +475,8 @@ BEGIN
                 CAST(s.created_at AS DATE)                            AS metric_date,
                 COALESCE(s.flow_type, 'unknown')                      AS flow_type,
                 CASE
-                    WHEN dn.goal_completed_flag = 1 THEN 'completed_flow'
+                    WHEN dn.goal_completed_flag = 1
+                      OR (dn.goal_completed_flag IS NULL AND s.resolved_flag = 1) THEN 'completed_flow'
                     WHEN s.fallback_flag = 1 THEN 'system_fallback'
                     WHEN s.abandoned_flag = 1 THEN 'left_midway'
                     ELSE 'unknown'
@@ -501,7 +501,11 @@ BEGIN
                     NULLIF(sb.user_email, ''),
                     CONVERT(NVARCHAR(200), s.session_id)
                 )                                                     AS unique_user_key,
-                dn.goal_completed_flag,
+                CASE
+                    WHEN dn.goal_completed_flag = 1 THEN 1
+                    WHEN dn.goal_completed_flag IS NULL AND s.resolved_flag = 1 THEN 1
+                    ELSE 0
+                END                                                   AS effective_completed_flag,
                 pi.lead_capture_started_flag,
                 pi.lead_capture_completed_flag,
                 pi.consultation_requested_flag,
@@ -582,7 +586,7 @@ BEGIN
                 / NULLIF(COUNT(*), 0)                                 AS replied_at_least_once_rate,
             CAST(SUM(CASE WHEN engaged_flag = 1 THEN 1 ELSE 0 END) AS FLOAT)
                 / NULLIF(COUNT(*), 0)                                 AS engaged_session_rate,
-            CAST(SUM(CASE WHEN goal_completed_flag = 1 THEN 1 ELSE 0 END) AS FLOAT)
+            CAST(SUM(effective_completed_flag) AS FLOAT)
                 / NULLIF(COUNT(*), 0)                                 AS completed_flow_rate,
             CAST(SUM(CASE WHEN escalated_flag = 1 THEN 1 ELSE 0 END) AS FLOAT)
                 / NULLIF(COUNT(*), 0)                                 AS escalation_rate,
@@ -608,7 +612,7 @@ BEGIN
             CAST(SUM(CASE WHEN error_flag = 1 THEN 1 ELSE 0 END) AS FLOAT)
                 / NULLIF(COUNT(*), 0)                                 AS error_rate,
             SUM(CASE WHEN engaged_flag = 1 THEN 1 ELSE 0 END)         AS engaged_sessions_count,
-            SUM(CASE WHEN goal_completed_flag = 1 THEN 1 ELSE 0 END)  AS completed_sessions_count,
+            SUM(effective_completed_flag)                             AS completed_sessions_count,
             SUM(converted_flag)                                       AS converted_sessions_count,
             CAST(SUM(converted_flag) AS FLOAT)
                 / NULLIF(COUNT(*), 0)                                 AS converted_sessions_rate,
