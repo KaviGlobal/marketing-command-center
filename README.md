@@ -1,21 +1,16 @@
 # Kavi Marketing Command Center
 
-Central repository for Kavi Global's marketing data infrastructure. Contains two systems:
-
-| System | Description |
-|---|---|
-| [**ETL Pipelines**](etl/README.md) | Daily data pulls from YouTube, Facebook, GA4, LinkedIn, Mailchimp, and Dripify into Azure SQL |
-| [**Chatbot Ingestion**](#chatbot-ingestion) | Azure Function that ingests chatbot session data from blob storage into Azure SQL |
+This repository contains two systems: the ETL pipelines that feed the marketing data warehouse, and the chatbot session ingestion pipeline.
 
 ---
 
 ## ETL Pipelines
 
-See **[etl/README.md](etl/README.md)** for full setup and usage.
+Daily data pulls from YouTube, Facebook, GA4, LinkedIn, Mailchimp, and Dripify into Azure SQL.
+
+See **[etl/README.md](etl/README.md)** for full setup, local run instructions, and GitHub Actions secrets.
 
 Runs automatically at **5 AM UTC daily** via GitHub Actions. Each pipeline can also be triggered manually from the Actions tab with optional `--since` date overrides.
-
-**Pipelines:**
 
 | Pipeline | Source | Destination |
 |---|---|---|
@@ -28,76 +23,34 @@ Runs automatically at **5 AM UTC daily** via GitHub Actions. Each pipeline can a
 
 ---
 
-## Chatbot Ingestion
+## Kavi Chat Data Export
 
-Azure Function app that receives chatbot session exports and loads them into Azure SQL.
+This repository includes the code and documentation for a chat session ingestion pipeline.
 
-**Key files:**
+### Documentation
 
-| File | Purpose |
-|---|---|
-| `function_app.py` | HTTP intake endpoint |
-| `blob_text_to_azure_sql.py` | Batch ingestion worker |
-| `shared_validation.py` | Shared validation logic |
-| `ingestion_logging.py` | Logging helpers |
-| `chatbot-sessions-data-export-schema.sql` | Azure SQL schema |
-| `host.json` | Azure Function host config |
+- [Docs Home](docs/README.md)
+- [Deployment Runbook](DEPLOYMENT.md)
+- [Local settings template](local.settings.example.json)
+- [Sample payload](sample_blob.json)
 
-**Docs:** See the [`docs/`](docs/README.md) directory for full operational, configuration, endpoint, ingestion, and deployment details.
+### Quick links
 
-**Deployment:** See [`DEPLOYMENT.md`](DEPLOYMENT.md).
+- `function_app.py` - Azure Function HTTP intake
+- `blob_text_to_azure_sql.py` - batch ingestion worker
+- `shared_validation.py` - shared validation rules
+- `chatbot-sessions-data-export-schema.sql` - Azure SQL schema
+- `host.json` - Function host configuration
+- [Function App Reference](docs/function_app.md)
+- [Ingestion Worker Reference](docs/ingestion_functions.md)
 
-**Local setup:**
-```bash
-pip install -r requirements.txt
-cp local.settings.example.json local.settings.json
-# Fill in local.settings.json, then:
-func start
-```
+### How to use
 
----
+1. Read `docs/README.md` for full documentation.
+2. Use `DEPLOYMENT.md` for deployment guidance.
+3. Use `local.settings.example.json` as the local config template.
+4. Run `pip install -r requirements.txt` locally.
 
-## Repository structure
+### Notes
 
-```
-├── etl/                              # ETL pipelines
-│   ├── README.md
-│   ├── requirements.txt
-│   ├── .env.template
-│   ├── youtube_ETL.py
-│   ├── facebook_ETL.py
-│   ├── ga4_ETL.py
-│   ├── linkedin_ETL.py
-│   ├── mailchimp/
-│   └── dripify/
-│
-├── .github/workflows/daily_etl.yml  # Scheduled ETL runner
-│
-├── function_app.py                   # Chatbot ingestion (Azure Function)
-├── blob_text_to_azure_sql.py
-├── shared_validation.py
-├── ingestion_logging.py
-├── host.json
-├── requirements.txt
-├── local.settings.example.json
-├── chatbot-sessions-data-export-schema.sql
-├── DEPLOYMENT.md
-└── docs/
-```
-
----
-
-## GitHub Actions secrets
-
-Secrets are shared across both systems. Add them in **Settings → Secrets and variables → Actions**.
-
-### Azure SQL (shared)
-| Secret | Description |
-|---|---|
-| `AZURE_SQL_SERVER` | e.g. `yourserver.database.windows.net` |
-| `AZURE_SQL_DB` | Database name |
-| `AZURE_SQL_USER` | SQL login username |
-| `AZURE_SQL_PWD` | SQL login password |
-| `AZURE_SQL_DRIVER` | e.g. `ODBC Driver 18 for SQL Server` |
-
-See [etl/README.md](etl/README.md#github-actions-secrets) for ETL-specific secrets.
+The chatbot section of this README is intentionally short. Full operational, configuration, endpoint, ingestion, SQL, validation, and handoff details are in the `docs/` directory.
