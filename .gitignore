@@ -2,6 +2,12 @@
 local.settings.json
 .python_packages/
 
+# ETL
+.env
+etl/dripify/token.pickle
+etl/yt_checkpoint_monthly.json
+*.DS_Store
+
 # MCP config (may contain tokens)
 .mcp.json
 

@@ -26,6 +26,12 @@ DEPLOYMENT.md
 *.sql
 seed_sample_blob_data.py
 
+# ETL pipelines (separate concern from the Azure Function)
+etl/
+
+# GitHub Actions
+.github/
+
 # Git metadata and workspace noise
 .git/
 .gitattributes

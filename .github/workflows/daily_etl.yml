@@ -1,0 +1,121 @@
+name: Daily ETL
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 5:00 AM UTC daily
+  workflow_dispatch:
+    inputs:
+      youtube_since:
+        description: 'YouTube --since date (YYYY-MM-DD). Leave blank to use default (35 days).'
+        required: false
+        default: ''
+      facebook_since:
+        description: 'Facebook --since date (YYYY-MM-DD). Leave blank for default (2 days).'
+        required: false
+        default: ''
+      linkedin_since:
+        description: 'LinkedIn --since date (YYYY-MM-DD). Leave blank to pull ALL history.'
+        required: false
+        default: ''
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+      AZURE_SQL_SERVER: ${{ secrets.AZURE_SQL_SERVER }}
+      AZURE_SQL_DB: ${{ secrets.AZURE_SQL_DB }}
+      AZURE_SQL_USER: ${{ secrets.AZURE_SQL_USER }}
+      AZURE_SQL_PWD: ${{ secrets.AZURE_SQL_PWD }}
+      AZURE_SQL_DRIVER: ${{ secrets.AZURE_SQL_DRIVER }}
+      FB_APP_ID: ${{ secrets.FB_APP_ID }}
+      FB_APP_SECRET: ${{ secrets.FB_APP_SECRET }}
+      FB_PAGE_TOKEN_KAVI_PHILIPPINES: ${{ secrets.FB_PAGE_TOKEN_KAVI_PHILIPPINES }}
+      FB_PAGE_TOKEN_KAVI_GLOBAL: ${{ secrets.FB_PAGE_TOKEN_KAVI_GLOBAL }}
+      GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+      LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+      LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+      LINKEDIN_REFRESH_TOKEN: ${{ secrets.LINKEDIN_REFRESH_TOKEN }}
+      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+      LINKEDIN_ORG_ID_KAVI_GLOBAL: ${{ secrets.LINKEDIN_ORG_ID_KAVI_GLOBAL }}
+      LINKEDIN_ORG_ID_KAVI_PHILIPPINES: ${{ secrets.LINKEDIN_ORG_ID_KAVI_PHILIPPINES }}
+      MAILCHIMP_ACCESS_TOKEN: ${{ secrets.MAILCHIMP_ACCESS_TOKEN }}
+      MAILCHIMP_API_ROOT: ${{ secrets.MAILCHIMP_API_ROOT }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      GOOGLE_TOKEN_PICKLE_B64: ${{ secrets.GOOGLE_TOKEN_PICKLE_B64 }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install ODBC Driver 18 for SQL Server
+        run: |
+          sudo rm -f /usr/share/keyrings/microsoft-prod.gpg
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+          sudo chmod a+r /usr/share/keyrings/microsoft-prod.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update -q
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+
+      - name: Install Python dependencies
+        run: pip install -r etl/requirements.txt
+
+      - name: Run YouTube ETL
+        working-directory: etl
+        run: |
+          if [ -n "${{ github.event.inputs.youtube_since }}" ]; then
+            python youtube_ETL.py --since ${{ github.event.inputs.youtube_since }}
+          else
+            python youtube_ETL.py --since $(date -d '35 days ago' +%Y-%m-%d)
+          fi
+
+      - name: Run Facebook ETL
+        working-directory: etl
+        run: |
+          if [ -n "${{ github.event.inputs.facebook_since }}" ]; then
+            python facebook_ETL.py --since ${{ github.event.inputs.facebook_since }}
+          else
+            python facebook_ETL.py --since $(date -d '2 days ago' +%Y-%m-%d)
+          fi
+
+      - name: Run GA4 ETL
+        working-directory: etl
+        run: python ga4_ETL.py --since $(date -d '2 days ago' +%Y-%m-%d)
+
+      - name: Run LinkedIn ETL
+        if: ${{ env.LINKEDIN_REFRESH_TOKEN != '' || env.LINKEDIN_ACCESS_TOKEN != '' }}
+        working-directory: etl
+        run: |
+          if [ -n "${{ github.event.inputs.linkedin_since }}" ]; then
+            python linkedin_ETL.py --since ${{ github.event.inputs.linkedin_since }}
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            python linkedin_ETL.py --since $(date -d '2 days ago' +%Y-%m-%d)
+          else
+            python linkedin_ETL.py
+          fi
+
+      - name: Run Mailchimp ETL
+        if: ${{ env.MAILCHIMP_ACCESS_TOKEN != '' }}
+        working-directory: etl
+        run: cd mailchimp && python auto_refresh.py
+
+      - name: Run Dripify ETL
+        if: ${{ env.GOOGLE_SERVICE_ACCOUNT_JSON != '' || env.GOOGLE_TOKEN_PICKLE_B64 != '' }}
+        working-directory: etl
+        run: |
+          if [ -n "$GOOGLE_TOKEN_PICKLE_B64" ]; then
+            echo "$GOOGLE_TOKEN_PICKLE_B64" | base64 -d > dripify/token.pickle
+          fi
+          cd dripify && python auto_refresh.py && python dripify_to_azure.py
