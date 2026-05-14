@@ -183,6 +183,105 @@ When run directly, the worker loads `local.settings.json` `Values` as defaults f
 - `local.settings.json` is local-only and gitignored; `local.settings.example.json` is the tracked template.
 - `AzureWebJobsStorage` and `FUNCTIONS_WORKER_RUNTIME=python` are required for Azure Functions local emulation.
 
+### Local ingestion worker setup and run
+
+Use this section when you want to run the blob-to-SQL ingestion worker from your machine for validation, troubleshooting, or one-off backfills.
+
+Prerequisites:
+
+- Python `3.13.x`
+- local access to the target Azure Blob Storage account and Azure SQL database
+- `ODBC Driver 18 for SQL Server` installed on the host
+- a filled-in `local.settings.json` copied from `local.settings.example.json`
+
+If the SQL ODBC driver is not installed yet:
+
+- macOS with Homebrew: `brew install unixodbc msodbcsql18`
+- Windows: install `ODBC Driver 18 for SQL Server` from Microsoft
+
+Recommended local setup flow:
+
+1. Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+2. Activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+3. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Create a local settings file if you do not already have one:
+
+```bash
+cp local.settings.example.json local.settings.json
+```
+
+5. Fill in real values in `local.settings.json` under `Values`.
+
+Minimum values to verify:
+
+- `AzureWebJobsStorage` or `AZURE_STORAGE_CONNECTION_STRING`
+- SQL connection via `AZURE_SQL_CONN_STR` or the split SQL settings
+- `SESSION_LOG_CONTAINER=session-logs` unless production uses a different container
+- `SESSION_LOG_BLOB_PREFIX=` when blobs live at container root
+- `SESSION_LOG_BLOB_PREFIX=sessions/` only when the real blob names start with `sessions/`
+
+Run the full ingestion pass:
+
+```bash
+python blob_text_to_azure_sql.py
+```
+
+Run a single blob by path:
+
+```bash
+python blob_text_to_azure_sql.py --blob "<blob-path>"
+```
+
+Optional run modes:
+
+- `python blob_text_to_azure_sql.py --delete-after`
+- `python blob_text_to_azure_sql.py --no-delete-after`
+
+What to expect after a successful local run:
+
+- console logs showing run start, per-blob handling, and run completion
+- log files under `logs/` unless logging is redirected elsewhere
+- new or updated rows in:
+  - `dbo.session_blob_ingestion_run`
+  - `dbo.session_blob_ingestion`
+  - `dbo.session_blob_fact`
+  - `dbo.session_blob_session`
+- if KPI refresh is enabled, a new row in `dbo.kpi_aggregate_refresh_run`
+
+Recommended verification queries:
+
+```sql
+SELECT TOP 5 run_id, run_status, blobs_processed, blobs_succeeded, blobs_rejected, blobs_failed, started_at_utc, completed_at_utc
+FROM dbo.session_blob_ingestion_run
+ORDER BY started_at_utc DESC;
+
+SELECT TOP 10 blob_path, ingestion_status, ingested_at_utc
+FROM dbo.session_blob_ingestion
+ORDER BY ingested_at_utc DESC;
+```
+
+If the local run does not behave as expected:
+
+- confirm `SESSION_LOG_BLOB_PREFIX` matches the actual production blob layout
+- confirm the SQL server is reachable from your network
+- confirm the ODBC driver is installed and discoverable by `pyodbc`
+- check `logs/ingestion-errors.log` and `logs/ingestion.jsonl`
+
 ## Data and Validation Constraints
 
 - `sessionId` is required and must match the supported session ID character set.

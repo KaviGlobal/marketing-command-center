@@ -187,6 +187,8 @@ python blob_text_to_azure_sql.py
 - The worker refreshes `dbo.kpi_aggregates` by calling `dbo.usp_refresh_kpi_aggregates`.
 - The worker can read the main merged-session blob layout and legacy one-blob-per-field layouts when compatibility mode is enabled.
 
+For a developer-focused local setup and one-off local execution flow, use the ingestion worker section in [DEPLOYMENT.md](../DEPLOYMENT.md). This Azure guide stays focused on the deployed Container Apps Job and related cloud checks.
+
 ### 3.2 Scheduler settings and schedule
 
 Current production scheduler configuration:
