@@ -6,6 +6,7 @@ This project implements a two-stage data pipeline for chat session data.
 
 1. Azure Function HTTP intake captures session updates and stores canonical JSON in Azure Blob Storage.
 2. A batch ingestion worker reads the stored blobs, validates the data, and writes approved rows to Azure SQL.
+3. Azure SQL exposes normalized reporting tables and Power BI helper views for downstream analytics.
 
 ## Architecture
 
@@ -26,8 +27,9 @@ Azure SQL Database (`chatbot-sessions-data-export-schema.sql`)
 - `function_app.py`: Azure Functions HTTP API for session updates.
 - `blob_text_to_azure_sql.py`: Batch ingestion worker for blob-to-SQL processing.
 - `shared_validation.py`: Common validation rules shared by both runtimes.
-- `chatbot-sessions-data-export-schema.sql`: Azure SQL schema, ingestion tables, and reporting model.
+- `chatbot-sessions-data-export-schema.sql`: Azure SQL schema, ingestion tables, reporting tables, and reporting views.
 - `host.json`: Azure Functions host behavior and timeout settings.
 - `local.settings.example.json`: Local development configuration template.
 - `DEPLOYMENT.md`: Deployment runbook for Azure resources.
 - `README.md`: Top-level index and quick start.
+- `powerbi.md`: Reporting-layer guidance for Power BI source objects and refresh sequencing.

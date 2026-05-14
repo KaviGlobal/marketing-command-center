@@ -32,6 +32,15 @@ The schema also includes normalized reporting tables such as:
 - `dbo.vendor_inquiries` – vendor contact and service interest data.
 - `dbo.bot_optimization_metrics` – fallback, latency, and error diagnostics.
 
+## Reporting views
+
+The reporting layer also includes SQL views used directly by Power BI:
+
+- `dbo.vw_session_reporting_detail` – session-level drill-down view.
+- `dbo.vw_kpi_aggregates_power_bi` – Power BI-friendly projection of `dbo.kpi_aggregates`.
+- `dbo.vw_kpi_card_base_power_bi` – session-level base view for KPI cards and Month-over-Month labels.
+- `dbo.vw_session_heatmap_power_bi` – helper view for weekday/hour session heatmaps.
+
 ## Ingestion bookkeeping
 
 The schema also includes run and blob ingestion tracking tables:
@@ -42,3 +51,4 @@ The schema also includes run and blob ingestion tracking tables:
 
 - `chatbot-sessions-data-export-schema.sql` is the only Azure SQL deployment script.
 - Historical prospect/offering migration deltas are already folded into that canonical schema.
+- Keep reporting helper views aligned with both the canonical schema and [`powerbi.md`](powerbi.md).

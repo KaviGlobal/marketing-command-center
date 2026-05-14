@@ -26,7 +26,7 @@ Azure Function HTTP API -> Azure Blob Storage -> Ingestion worker -> Azure SQL
 
 Run these in order against target Azure SQL database:
 
-1. `chatbot-sessions-data-export-schema.sql` (canonical schema + reporting views + KPI refresh procedure)
+1. `chatbot-sessions-data-export-schema.sql` (canonical schema + normalized reporting tables + reporting views + KPI refresh procedure)
 
 ## Function App Deployment
 
@@ -85,6 +85,13 @@ The ingestion worker can run as:
 - Container App Job
 - Any scheduled host able to run Python and reach Storage + SQL
 
+This repository also includes container build assets for the ingestion worker:
+
+- `Dockerfile` - builds a runnable ingestion image with Python 3.13, `pyodbc`,
+  and Microsoft ODBC Driver 18 for SQL Server
+- `.dockerignore` - excludes local secrets and transient files from the image
+  build context
+
 ### Ingestion environment settings
 
 Required:
@@ -97,7 +104,7 @@ Required:
 Optional:
 
 - `SESSION_LOG_CONTAINER` (default `session-logs`)
-- `SESSION_LOG_BLOB_PREFIX` (default `sessions/`)
+- `SESSION_LOG_BLOB_PREFIX` (default empty; set `sessions/` only when blob names actually start with `sessions/`)
 - `FAILED_FIELDNAMES_CONTAINER` (default falls back to `SESSION_LOG_CONTAINER`)
 - `FAILED_FIELDNAMES_BLOB_PREFIX` (default `failed-fieldnames/`)
 - `AZURE_SQL_TRUST_SERVER_CERTIFICATE` (default `no`)
@@ -162,10 +169,15 @@ When run directly, the worker loads `local.settings.json` `Values` as defaults f
 
 ## Data and Validation Constraints
 
-- `sessionId` is validated as GUID at write time and required for SQL ingestion.
+- `sessionId` is required and must match the supported session ID character set.
+- Non-GUID `sessionId` values are accepted for raw ingestion and deterministically mapped to GUIDs for normalized reporting tables.
+- Raw ingestion tables preserve the original source `sessionId` value for traceability.
 - Invalid rows are written to `session_blob_rejection`.
 - Ingestion state is tracked in `session_blob_ingestion`.
 - Dead-letter writes are idempotent by source blob etag pathing.
+- Canonical `flow_type` is treated as a session-level value.
+- Generic wrapper hints such as `System` and `ConversationEvaluation` are not treated as canonical business flows.
+- Once a canonical session flow is established in normalized tables, later blobs do not overwrite it with a conflicting wrapper flow.
 
 ## Security and Operations
 
@@ -185,7 +197,12 @@ When run directly, the worker loads `local.settings.json` `Values` as defaults f
    - `session_blob_session`
    - `session_blob_fact`
    - `session_blob_ingestion`
-6. If testing invalid input, verify `session_blob_rejection` and optional dead-letter container behavior.
+6. Verify reporting objects expected by Power BI exist and return rows:
+   - `vw_kpi_aggregates_power_bi`
+   - `vw_session_reporting_detail`
+   - `vw_kpi_card_base_power_bi`
+   - `vw_session_heatmap_power_bi`
+7. If testing invalid input, verify `session_blob_rejection` and optional dead-letter container behavior.
 
 ## Handoff Notes For Platform Team
 
@@ -193,3 +210,4 @@ When run directly, the worker loads `local.settings.json` `Values` as defaults f
 - `local.settings.example.json` is the committed baseline for local configuration shape.
 - Deployment should set real values through environment configuration.
 - No code edits are required for environment-specific wiring.
+- Power BI source guidance lives in [`docs/powerbi.md`](docs/powerbi.md).

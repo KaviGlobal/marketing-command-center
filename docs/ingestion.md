@@ -39,8 +39,14 @@ The CLI flag overrides `INGESTION_DELETE_AFTER_SUCCESS` for that run.
 - `INGESTION_DELETE_AFTER_SUCCESS=false` is recommended until ingestion behavior is confirmed.
 - `DEAD_LETTER_DELETE_SOURCE=false` is recommended when using dead-lettering.
 - `FACT_ROW_DEDUPE_ENABLED=true` reduces duplicate inserts in SQL.
+- The current Function App writes one merged session document per session, typically under `sessions/<sessionId>.json`.
+- The ingestion worker can still scan legacy root-level or alternate-prefix sources for compatibility with older one-blob-per-field producers.
+- `SESSION_LOG_BLOB_PREFIX` should be left empty when blobs live at the root of the container; only set `sessions/` when blob names actually start with `sessions/`.
 - If a blob payload contains `devFlag: "dev"`, the ingestion worker deletes it and marks it as skipped rather than ingesting it.
 - When ingesting from multiple blob sources in a single run, the ingestion worker records `blob_path` in SQL as `<container>/<blobName>` to avoid collisions across containers.
+- Non-GUID `sessionId` values are accepted for raw ingestion and deterministically mapped to GUIDs for normalized reporting tables.
+- Canonical `flow_type` is derived once per session from explicit business fields first; generic wrapper hints such as `System` and `ConversationEvaluation` are ignored for canonical session flow.
+- Once a canonical session flow is established in normalized tables, later blobs do not overwrite it with a conflicting wrapper flow.
 
 ## Failure handling
 

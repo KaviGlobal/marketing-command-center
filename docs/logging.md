@@ -111,7 +111,7 @@ tail -n 200 logs/ingestion-errors.log
 
 ### See everything that happened for a specific blob
 ```bash
-jq 'select(.blob_path == "session-logs/sessions/abc.json")' logs/ingestion.jsonl
+jq 'select(.blob_path == "sessions/abc.json" or .blob_path == "abc-field.json")' logs/ingestion.jsonl
 ```
 
 ### Summarize failures by stage

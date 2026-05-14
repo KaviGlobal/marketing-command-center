@@ -29,8 +29,9 @@ Change this file when you need to:
 
 Change this file when you need to:
 - deploy new tables or alter existing schema
-- update indexes and reporting views
+- update indexes, normalized reporting tables, and reporting views
 - change ingestion or KPI refresh bookkeeping structures
+- add or revise Power BI helper views
 
 ## Deployment checklist
 
@@ -54,4 +55,5 @@ Explain:
 - `local.settings.example.json` is the local template.
 - `chatbot-sessions-data-export-schema.sql` is the production schema.
 - `DEPLOYMENT.md` is the deployment runbook.
+- `powerbi.md` documents the intended SQL source objects for Power BI visuals.
 - The main client inputs are storage and SQL credentials.

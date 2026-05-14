@@ -6,6 +6,17 @@ This page documents the shared validation module used by both `function_app.py` 
 
 `shared_validation.py` centralizes session and field validation rules so both the HTTP intake layer and the ingestion worker enforce the same data quality constraints.
 
+## Quick rules
+
+- Session IDs must match the shared session ID character set.
+- The Function App requires `sessionId` to already be a GUID before it accepts an HTTP write.
+- The ingestion worker is more permissive for raw blob compatibility: it accepts non-GUID session IDs in raw ingestion tables and deterministically maps them to GUIDs for normalized reporting tables.
+- Field names are limited to 150 characters and to letters, digits, `_`, `-`, `.`, and `:`.
+- Field values are limited to 4000 characters.
+- If `isKpi=true`, the canonical field name must be in `ALLOWED_KPI_FIELDS`.
+- Known email, boolean, and integer fields are type-checked.
+- Alias normalization happens before KPI validation.
+
 ## Constants and allowed values
 
 - `SESSION_ID_RE`
@@ -49,7 +60,7 @@ This page documents the shared validation module used by both `function_app.py` 
 
 - `FIELD_NAME_ALIASES`
   - Maps legacy or alternate field names to canonical names.
-  - Example: `csat` → `satisfaction_score`, `flowType` → `flow_type`, `feedbackComment` → `feedback_comment`.
+  - Example: `csat` → `satisfaction_score`, `flowType` → `flow_type`, `sessionStartTimeUtc` → `session_start_time`, `feedbackComment` → `feedback_comment`.
 
 ## Functions
 
@@ -100,8 +111,8 @@ This page documents the shared validation module used by both `function_app.py` 
 
 ## How it is used
 
-- `function_app.py` uses these rules to validate incoming HTTP payloads before writing session blobs.
-- `blob_text_to_azure_sql.py` uses the same normalization and validation rules when parsing blob payloads and preparing SQL inserts.
+- `function_app.py` uses these rules to validate incoming HTTP payloads before writing merged session blobs.
+- `blob_text_to_azure_sql.py` uses the same normalization and field-level validation rules when parsing blob payloads and preparing SQL inserts, but it has an ingestion-specific session ID validator that supports legacy non-GUID raw source IDs.
 
 ## Why this matters
 

@@ -61,7 +61,12 @@ Required:
 
 Optional:
 - `SESSION_LOG_CONTAINER` = `session-logs`
-- `SESSION_LOG_BLOB_PREFIX` = `sessions/`
+- `SESSION_LOG_BLOB_PREFIX` = empty by default; use `sessions/` only when blob names actually start with `sessions/`
+- `SESSION_LOG_COMPAT_LEGACY_ENABLED` = `true`
+- `SESSION_LOG_LEGACY_CONTAINER` = `session-logs`
+- `SESSION_LOG_LEGACY_PREFIX` = empty by default
+- `SESSION_LOG_SOURCE_CONTAINERS` = optional comma-separated override
+- `SESSION_LOG_SOURCE_PREFIXES` = optional comma-separated override matching `SESSION_LOG_SOURCE_CONTAINERS`
 - `FAILED_FIELDNAMES_CONTAINER` = defaults to `SESSION_LOG_CONTAINER`
 - `FAILED_FIELDNAMES_BLOB_PREFIX` = `failed-fieldnames/`
 - `AZURE_SQL_TRUST_SERVER_CERTIFICATE` = `no`
@@ -80,3 +85,4 @@ Optional:
 - If `AZURE_SQL_CONN_STR` is provided, it overrides the individual SQL env vars.
 - Use app settings or Key Vault references for production secrets.
 - Keep destructive delete settings disabled until behavior is verified.
+- The current Function App writes merged session documents, while the ingestion worker can also scan legacy one-blob-per-field sources for compatibility.

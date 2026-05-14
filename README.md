@@ -31,6 +31,7 @@ This repository includes the code and documentation for a chat session ingestion
 
 - [Docs Home](docs/README.md)
 - [Deployment Runbook](DEPLOYMENT.md)
+- [Power BI and Reporting](docs/powerbi.md)
 - [Local settings template](local.settings.example.json)
 - [Sample payload](sample_blob.json)
 
@@ -43,6 +44,7 @@ This repository includes the code and documentation for a chat session ingestion
 - `host.json` - Function host configuration
 - [Function App Reference](docs/function_app.md)
 - [Ingestion Worker Reference](docs/ingestion_functions.md)
+- [Power BI and Reporting](docs/powerbi.md)
 
 ### How to use
 
@@ -53,4 +55,4 @@ This repository includes the code and documentation for a chat session ingestion
 
 ### Notes
 
-The chatbot section of this README is intentionally short. Full operational, configuration, endpoint, ingestion, SQL, validation, and handoff details are in the `docs/` directory.
+The chatbot section of this README is intentionally short. Full operational, configuration, ingestion, SQL, reporting, validation, and handoff details are in the `docs/` directory.
