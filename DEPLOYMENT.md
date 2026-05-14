@@ -76,6 +76,22 @@ Optional:
 - When `SESSION_LOG_DATE_PARTITION=true`, session blobs are stored under `sessions/YYYY/MM/DD/<sessionId>.json`.
 - `SESSION_LOG_PATH_INDEX_PREFIX` is normalized to end with `/` automatically by the function.
 
+### Function App deployment method
+
+Recommended:
+
+- Deploy from VS Code using the Azure Functions extension.
+- Command palette flow:
+  - `Azure Functions: Deploy to Function App`
+  - select the Azure subscription
+  - select `kavi-chatbot-etl`
+
+CLI alternative:
+
+```bash
+func azure functionapp publish kavi-chatbot-etl
+```
+
 ## Ingestion Worker Deployment
 
 The ingestion worker can run as:
